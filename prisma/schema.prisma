@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Direct (non-pooled) connection used for migrations; Neon's Vercel integration sets this name
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  courses   Course[]
+}
+
+model Course {
+  id        Int            @id @default(autoincrement())
+  title     String
+  teacher   String?
+  createdAt DateTime       @default(now())
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions  ClassSession[]
+
+  @@index([userId])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  CANCELLED // class was not held — excluded from attendance stats
+}
+
+model ClassSession {
+  id        Int              @id @default(autoincrement())
+  number    Int
+  date      DateTime?
+  status    AttendanceStatus
+  note      String?
+  createdAt DateTime         @default(now())
+  courseId  Int
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, number])
+}
